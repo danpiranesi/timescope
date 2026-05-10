@@ -40,6 +40,10 @@ function getAudioCtx() {
   return _audioCtx;
 }
 
+// Cooldown tracker: prevents repeated sounds for the same cluster
+const _burstCooldowns = new Map();
+const BURST_COOLDOWN_MS = 5000;
+
 function hapticTick() {
   try {
     const ctx = getAudioCtx();
@@ -264,12 +268,16 @@ export default function AROverlay({ heading, pitch, position, year, onSelect }) 
 
   const clusters = buildClusters(onScreenData);
 
-  // Haptic burst when clusters enter screen
+  // Haptic burst when clusters enter screen (with 5s cooldown per cluster)
+  const now = Date.now();
   for (const cluster of clusters) {
     const clusterIds = cluster.map((c) => c.poi.id);
+    const clusterKey = clusterIds.sort().join('-');
     const newEntries = clusterIds.filter((id) => !prevOnScreen.has(id));
-    if (newEntries.length === clusterIds.length && cluster.length > 0) {
+    const lastBurst = _burstCooldowns.get(clusterKey) || 0;
+    if (newEntries.length === clusterIds.length && cluster.length > 0 && now - lastBurst > BURST_COOLDOWN_MS) {
       hapticBurst(cluster.length);
+      _burstCooldowns.set(clusterKey, now);
     }
   }
   prevOnScreenRef.current = currentOnScreen;
@@ -507,12 +515,12 @@ const styles = {
     left: 0, right: 0, height: 1,
     background: `linear-gradient(to right, transparent 0%, ${colors.green}33 20%, ${colors.green}33 80%, transparent 100%)`,
     pointerEvents: 'none',
-    transition: 'top 0.1s ease-out',
+    transition: 'top 0.45s ease-out',
   },
   clusterWrap: {
     position: 'absolute',
     transform: 'translate(-50%, -50%)',
-    transition: 'left 0.15s ease-out, top 0.1s ease-out',
+    transition: 'left 0.45s ease-out, top 0.45s ease-out',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -539,7 +547,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'transform 0.25s ease-out',
+    transition: 'transform 0.5s ease-out',
   },
   circleImg: {
     width: '100%', height: '100%',
