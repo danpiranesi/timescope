@@ -272,9 +272,9 @@ export default function AROverlay({ heading, pitch, position, year, onSelect }) 
     return { poi, rel, dist };
   });
 
-  const onScreenData = poiData.filter((d) => Math.abs(d.rel) <= 80);
-  const leftCount = poiData.filter((d) => d.rel < -80).length;
-  const rightCount = poiData.filter((d) => d.rel > 80).length;
+  const onScreenData = poiData.filter((d) => Math.abs(d.rel) <= 45);
+  const leftCount = poiData.filter((d) => d.rel < -45).length;
+  const rightCount = poiData.filter((d) => d.rel > 45).length;
 
   const currentOnScreen = new Set(onScreenData.map((d) => d.poi.id));
   const prevOnScreen = prevOnScreenRef.current;
@@ -318,7 +318,7 @@ export default function AROverlay({ heading, pitch, position, year, onSelect }) 
         const activeIdx = Math.min(clusterIndices[clusterId] || 0, cluster.length - 1);
 
         const avgRel = cluster.reduce((s, c) => s + c.rel, 0) / cluster.length;
-        const centerX = 50 + (avgRel / 80) * 50;
+        const centerX = 50 + (avgRel / 45) * 50;
 
         const centerItem = cluster[activeIdx];
         const distOffset = Math.max(-8, Math.min(8, (Math.log10(centerItem.dist) - 3) * 4));

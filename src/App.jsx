@@ -130,6 +130,11 @@ export default function App() {
     };
   }, []);
 
+  function compassDir(deg) {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[Math.round(deg / 45) % 8];
+  }
+
   const handleSelectPoi = useCallback((poi) => {
     playOpen();
     setSelectedPoi(poi);
@@ -169,7 +174,10 @@ export default function App() {
       <div style={styles.topBar}>
         <div style={styles.topLeft}>
           {heading != null && (
-            <span style={styles.compass}>{Math.round(heading)}°</span>
+            <span style={styles.compass}>{compassDir(heading)} {Math.round(heading)}°</span>
+          )}
+          {position && (
+            <span style={styles.coords}>{position.lat.toFixed(4)}, {position.lng.toFixed(4)}</span>
           )}
         </div>
         <div style={styles.topRight}>
@@ -244,7 +252,11 @@ const styles = {
     padding: '50px 16px 10px',
     background: 'linear-gradient(to bottom, rgba(18,26,22,0.7) 0%, transparent 100%)',
   },
-  topLeft: { display: 'flex', gap: 8 },
+  topLeft: { display: 'flex', gap: 8, alignItems: 'center' },
+  coords: {
+    color: colors.textDim,
+    fontFamily: fonts.mono, fontSize: 10,
+  },
   topRight: { display: 'flex', gap: 6 },
   compass: {
     background: colors.bg, color: colors.accent,
