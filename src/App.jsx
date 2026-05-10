@@ -91,21 +91,35 @@ export default function App() {
     );
   }, []);
 
+  // Low-pass filter for smoothing compass/pitch jitter
+  const smoothRef = useRef({ heading: null, pitch: 0 });
+  const SMOOTHING = 0.15; // 0 = no smoothing, 1 = frozen. 0.15 = smooth but responsive
+
   function handleOrientation(e) {
-    let h = null;
+    let rawH = null;
     if (e.webkitCompassHeading != null) {
-      h = e.webkitCompassHeading;
+      rawH = e.webkitCompassHeading;
     } else if (e.alpha != null) {
-      h = e.absolute ? (360 - e.alpha) : e.alpha;
+      rawH = e.absolute ? (360 - e.alpha) : e.alpha;
     }
-    if (h != null) setHeading(h);
-    // beta: 0 = flat, 90 = upright, >90 = tilted back
-    // We map this to a pitch offset for the horizon
+
+    if (rawH != null) {
+      if (smoothRef.current.heading === null) {
+        smoothRef.current.heading = rawH;
+      } else {
+        // Handle 360/0 wraparound
+        let diff = rawH - smoothRef.current.heading;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        smoothRef.current.heading = (smoothRef.current.heading + diff * (1 - SMOOTHING) + 360) % 360;
+      }
+      setHeading(smoothRef.current.heading);
+    }
+
     if (e.beta != null) {
-      // When phone is upright (beta~90), pitch=0 (horizon centered)
-      // When tilted up (beta<90), pitch>0 (horizon moves down)
-      // When tilted down (beta>90), pitch<0 (horizon moves up)
-      setPitch(90 - e.beta);
+      const rawP = 90 - e.beta;
+      smoothRef.current.pitch = smoothRef.current.pitch + (rawP - smoothRef.current.pitch) * (1 - SMOOTHING);
+      setPitch(smoothRef.current.pitch);
     }
   }
 

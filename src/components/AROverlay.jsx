@@ -44,7 +44,18 @@ function getAudioCtx() {
 const _burstCooldowns = new Map();
 const BURST_COOLDOWN_MS = 5000;
 
+// Global sound rate limiter: max 2 sounds per second
+let _lastSoundTime = 0;
+const MIN_SOUND_INTERVAL_MS = 500;
+function canPlaySound() {
+  const now = Date.now();
+  if (now - _lastSoundTime < MIN_SOUND_INTERVAL_MS) return false;
+  _lastSoundTime = now;
+  return true;
+}
+
 function hapticTick() {
+  if (!canPlaySound()) return;
   try {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
@@ -61,6 +72,7 @@ function hapticTick() {
 }
 
 function hapticPop() {
+  if (!canPlaySound()) return;
   try {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
@@ -77,6 +89,7 @@ function hapticPop() {
 }
 
 function hapticBurst(count) {
+  if (!canPlaySound()) return;
   try {
     const ctx = getAudioCtx();
     for (let i = 0; i < Math.min(count, 6); i++) {
