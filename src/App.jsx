@@ -93,7 +93,7 @@ export default function App() {
 
   // Low-pass filter for smoothing compass/pitch jitter
   const smoothRef = useRef({ heading: null, pitch: 0 });
-  const SMOOTHING = 0.15; // 0 = no smoothing, 1 = frozen. 0.15 = smooth but responsive
+  const SMOOTHING = 0.25; // 0 = no smoothing, 1 = frozen. 0.25 = smooth and stable
 
   function handleOrientation(e) {
     let rawH = null;
