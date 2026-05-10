@@ -4,6 +4,7 @@ import AROverlay from './components/AROverlay';
 import TimelineSlider from './components/TimelineSlider';
 import InfoCard from './components/InfoCard';
 import MapView from './components/MapView';
+import CompassBar from './components/CompassBar';
 import { colors, fonts } from './theme';
 
 export default function App() {
@@ -100,9 +101,11 @@ export default function App() {
   function handleOrientation(e) {
     let rawH = null;
     if (e.webkitCompassHeading != null) {
-      rawH = e.webkitCompassHeading;
+      // webkitCompassHeading points the device top — when held upright
+      // we need the camera-facing direction, which is 180° opposite
+      rawH = (e.webkitCompassHeading + 180) % 360;
     } else if (e.alpha != null) {
-      rawH = e.absolute ? (360 - e.alpha) : e.alpha;
+      rawH = e.absolute ? (360 - e.alpha + 180) % 360 : (e.alpha + 180) % 360;
     }
 
     // Always update the smooth ref (accumulate smoothing between frames)
@@ -178,14 +181,13 @@ export default function App() {
       <AROverlay heading={heading} pitch={pitch} position={position} year={year} onSelect={handleSelectPoi} />
       <TimelineSlider year={year} onChange={handleYearChange} />
 
+      <CompassBar heading={heading} />
+
       {/* Top bar */}
       <div style={styles.topBar}>
         <div style={styles.topLeft}>
           {heading != null && (
             <span style={styles.compass}>{compassDir(heading)} {Math.round(heading)}°</span>
-          )}
-          {position && (
-            <span style={styles.coords}>{position.lat.toFixed(4)}, {position.lng.toFixed(4)}</span>
           )}
         </div>
         <div style={styles.topRight}>
@@ -257,7 +259,7 @@ const styles = {
   topBar: {
     position: 'fixed', top: 0, left: 0, right: 0, zIndex: 15,
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '50px 16px 10px',
+    padding: '82px 16px 10px',
     background: 'linear-gradient(to bottom, rgba(18,26,22,0.7) 0%, transparent 100%)',
   },
   topLeft: { display: 'flex', gap: 8, alignItems: 'center' },
