@@ -91,9 +91,11 @@ export default function App() {
     );
   }, []);
 
-  // Low-pass filter for smoothing compass/pitch jitter
-  const smoothRef = useRef({ heading: null, pitch: 0 });
-  const SMOOTHING = 0.25; // 0 = no smoothing, 1 = frozen. 0.25 = smooth and stable
+  // Smoothing + throttle: only push state updates every 100ms (10fps)
+  // so CSS transitions have time to ease without being interrupted
+  const smoothRef = useRef({ heading: null, pitch: 0, lastUpdate: 0 });
+  const SMOOTHING = 0.35; // Higher = smoother/slower response
+  const THROTTLE_MS = 100;
 
   function handleOrientation(e) {
     let rawH = null;
@@ -103,24 +105,30 @@ export default function App() {
       rawH = e.absolute ? (360 - e.alpha) : e.alpha;
     }
 
+    // Always update the smooth ref (accumulate smoothing between frames)
     if (rawH != null) {
       if (smoothRef.current.heading === null) {
         smoothRef.current.heading = rawH;
       } else {
-        // Handle 360/0 wraparound
         let diff = rawH - smoothRef.current.heading;
         if (diff > 180) diff -= 360;
         if (diff < -180) diff += 360;
         smoothRef.current.heading = (smoothRef.current.heading + diff * (1 - SMOOTHING) + 360) % 360;
       }
-      setHeading(smoothRef.current.heading);
     }
 
     if (e.beta != null) {
       const rawP = 90 - e.beta;
       smoothRef.current.pitch = smoothRef.current.pitch + (rawP - smoothRef.current.pitch) * (1 - SMOOTHING);
-      setPitch(smoothRef.current.pitch);
     }
+
+    // Throttle React state updates
+    const now = Date.now();
+    if (now - smoothRef.current.lastUpdate < THROTTLE_MS) return;
+    smoothRef.current.lastUpdate = now;
+
+    if (smoothRef.current.heading != null) setHeading(smoothRef.current.heading);
+    setPitch(smoothRef.current.pitch);
   }
 
   useEffect(() => {
