@@ -528,12 +528,12 @@ const styles = {
     left: 0, right: 0, height: 1,
     background: `linear-gradient(to right, transparent 0%, ${colors.green}33 20%, ${colors.green}33 80%, transparent 100%)`,
     pointerEvents: 'none',
-    transition: 'top 0.45s ease-out',
+    transition: 'top 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)',
   },
   clusterWrap: {
     position: 'absolute',
     transform: 'translate(-50%, -50%)',
-    transition: 'left 0.45s ease-out, top 0.45s ease-out',
+    transition: 'left 0.5s cubic-bezier(0.25, 0.1, 0.25, 1), top 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -560,7 +560,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'transform 0.5s ease-out',
+    transition: 'transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1)',
   },
   circleImg: {
     width: '100%', height: '100%',
