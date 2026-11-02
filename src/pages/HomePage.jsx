@@ -127,7 +127,7 @@ export default function HomePage() {
       <SectionTitle right={<Link to="/me" style={styles.meLink}>My collections ›</Link>}>All communities</SectionTitle>
       {loadError && <ErrorText>{loadError}</ErrorText>}
       {!all && !loadError && <Spinner />}
-      {all && all.length === 0 && <Muted>No communities yet. Be the first — search for your town above.</Muted>}
+      {all && all.length === 0 && <Muted>No public collections yet. Search for your town above to start one.</Muted>}
       {all && all.map((c) => <CommunityCard key={c.id} c={c} />)}
 
       <p style={styles.footer}>Point your phone at the past · timescope</p>

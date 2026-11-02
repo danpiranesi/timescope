@@ -3,3 +3,5 @@ dist
 .vercel
 .env
 .env.*
+.timescope-import-token
+import-links.md

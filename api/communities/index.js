@@ -19,6 +19,9 @@ export default async function handler(req, res) {
         const needle = q.toLowerCase();
         list = list.filter((c) => c.name.toLowerCase().includes(needle) || c.region.toLowerCase().includes(needle));
       }
+      // The default listing shows only communities with something public to see;
+      // search and nearby lookups still return every community.
+      if (!q && !(lat && lng)) list = list.filter((c) => c.collectionCount > 0);
       if (lat && lng) {
         const la = Number(lat), ln = Number(lng);
         list = list
