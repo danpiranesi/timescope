@@ -29,7 +29,7 @@ if (existing.length) {
 const [col] = await sql`
   INSERT INTO collections (slug, community_id, owner_id, title, description, is_public, edit_key)
   VALUES ('komoro-history', ${community.id}, NULL, 'Layers of Komoro',
-          'Sixteen historical locations around Komoro, from Nunobiki Kannon to the Ando Center — castles, onsen, volcanoes and the writers who loved them.',
+          'Twenty places within an hour of Komoro: the hole castle and its station, post towns on the old roads to Edo, the temples at Bessho, and the volcano whose ash made the soil.',
           true, ${randomBytes(12).toString('base64url')})
   RETURNING id`;
 
