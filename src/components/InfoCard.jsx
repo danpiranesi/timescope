@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getRelatedPois } from '../pois';
+import { api } from '../api';
 import { colors, fonts } from '../theme';
 
 function fetchWikiImage(wikiTitle) {
@@ -11,18 +11,28 @@ function fetchWikiImage(wikiTitle) {
     .catch(() => null);
 }
 
-export default function InfoCard({ poi, onClose, onSelectRelated }) {
+export default function InfoCard({ poi, pins = [], onClose, onSelectRelated }) {
   const [image, setImage] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [userImages, setUserImages] = useState([]);
-  const related = getRelatedPois(poi.id);
+  const [notesError, setNotesError] = useState(null);
+  const related = (poi.related || []).map((k) => pins.find((p) => p.key === k || p.id === k)).filter((p) => p && p.id !== poi.id);
 
   useEffect(() => {
     setImage(null);
-    if (poi.wiki) {
-      fetchWikiImage(poi.wiki).then((url) => url && setImage(url));
-    }
+    if (poi.imageUrl) setImage(poi.imageUrl);
+    else if (poi.wiki) fetchWikiImage(poi.wiki).then((url) => url && setImage(url));
+  }, [poi.id]);
+
+  useEffect(() => {
+    setComments([]);
+    setNotesError(null);
+    let cancelled = false;
+    api.pins.notes(poi.id)
+      .then((d) => { if (!cancelled) setComments(d.notes); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [poi.id]);
 
   const handleAddImage = () => {
@@ -40,10 +50,17 @@ export default function InfoCard({ poi, onClose, onSelectRelated }) {
     input.click();
   };
 
-  const handleComment = () => {
-    if (!commentText.trim()) return;
-    setComments((prev) => [...prev, { text: commentText, time: new Date().toLocaleTimeString() }]);
+  const handleComment = async () => {
+    const text = commentText.trim();
+    if (!text) return;
     setCommentText('');
+    try {
+      const { note } = await api.pins.addNote(poi.id, text);
+      setComments((prev) => [...prev, note]);
+    } catch (e) {
+      setNotesError(e.message);
+      setCommentText(text);
+    }
   };
 
   return (
@@ -61,7 +78,7 @@ export default function InfoCard({ poi, onClose, onSelectRelated }) {
             </div>
           )}
           <div style={styles.imageOverlay}>
-            <span style={{...styles.yearBadge, background: poi.color}}>{poi.year}</span>
+            {poi.year != null && <span style={{...styles.yearBadge, background: poi.color}}>{poi.year}</span>}
           </div>
         </div>
 
@@ -82,8 +99,13 @@ export default function InfoCard({ poi, onClose, onSelectRelated }) {
         <div style={styles.body}>
           {/* Title */}
           <h2 style={styles.title}>{poi.title}</h2>
-          <h3 style={styles.titleEn}>{poi.titleEn}</h3>
-          <p style={styles.desc}>{poi.desc}</p>
+          {poi.titleEn ? <h3 style={styles.titleEn}>{poi.titleEn}</h3> : <div style={{ height: 10 }} />}
+          {poi.desc && <p style={styles.desc}>{poi.desc}</p>}
+          {poi.sourceUrl && (
+            <a href={poi.sourceUrl} target="_blank" rel="noreferrer" style={styles.sourceLink}>
+              {poi.source === 'google' ? '↗ Open in Google Maps' : '↗ Source'}
+            </a>
+          )}
 
           {/* Comments */}
           <div style={styles.commentSection}>
@@ -98,9 +120,10 @@ export default function InfoCard({ poi, onClose, onSelectRelated }) {
               />
               <button style={styles.commentBtn} onClick={handleComment}>→</button>
             </div>
-            {comments.map((c, i) => (
-              <div key={i} style={styles.comment}>
-                <span style={styles.commentTime}>{c.time}</span>
+            {notesError && <div style={{ ...styles.commentTime, color: '#ff6b6b' }}>{notesError}</div>}
+            {comments.map((c) => (
+              <div key={c.id} style={styles.comment}>
+                <span style={styles.commentTime}>{c.author} · {new Date(c.createdAt).toLocaleDateString()}</span>
                 <span style={styles.commentText}>{c.text}</span>
               </div>
             ))}
@@ -109,17 +132,25 @@ export default function InfoCard({ poi, onClose, onSelectRelated }) {
           {/* Divider */}
           <div style={styles.divider} />
 
-          {/* History */}
-          <div style={styles.section}>
-            <h4 style={styles.sectionTitle}>⟐ History</h4>
-            <p style={styles.sectionText}>{poi.history}</p>
-          </div>
+          {poi.history && (
+            <div style={styles.section}>
+              <h4 style={styles.sectionTitle}>⟐ History</h4>
+              <p style={styles.sectionText}>{poi.history}</p>
+            </div>
+          )}
 
-          {/* Fun fact */}
-          <div style={{...styles.section, ...styles.funFact}}>
-            <h4 style={{...styles.sectionTitle, color: colors.brownLight}}>☆ Fun Fact</h4>
-            <p style={{...styles.sectionText, fontStyle: 'italic'}}>{poi.funFact}</p>
-          </div>
+          {poi.funFact && (
+            <div style={{...styles.section, ...styles.funFact}}>
+              <h4 style={{...styles.sectionTitle, color: colors.brownLight}}>☆ Fun Fact</h4>
+              <p style={{...styles.sectionText, fontStyle: 'italic'}}>{poi.funFact}</p>
+            </div>
+          )}
+
+          {!poi.history && !poi.funFact && !poi.desc && (
+            <p style={{ ...styles.sectionText, color: colors.textDim, fontStyle: 'italic' }}>
+              No story yet. The collection's editors can add history and a fun fact for this place.
+            </p>
+          )}
 
           {/* Related */}
           {related.length > 0 && (
@@ -218,6 +249,10 @@ const styles = {
   desc: {
     fontSize: 14, color: colors.text, lineHeight: 1.5,
     fontFamily: fonts.sans, marginBottom: 14,
+  },
+  sourceLink: {
+    display: 'inline-block', marginBottom: 14, color: colors.accent,
+    fontFamily: fonts.mono, fontSize: 12, textDecoration: 'none',
   },
   commentSection: {
     marginBottom: 8,

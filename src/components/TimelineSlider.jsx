@@ -1,22 +1,22 @@
 import React from 'react';
 import { colors, fonts } from '../theme';
 
-export default function TimelineSlider({ year, onChange }) {
+export default function TimelineSlider({ year, min = 700, max = 2024, onChange, raised = false }) {
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, ...(raised ? { zIndex: 46, bottom: 'max(24px, env(safe-area-inset-bottom))' } : {}) }}>
       <span style={styles.label}>{year}</span>
       <input
         type="range"
-        min={700}
-        max={2024}
+        min={min}
+        max={max}
         step={1}
         value={year}
         onChange={(e) => onChange(Number(e.target.value))}
         style={styles.slider}
       />
       <div style={styles.range}>
-        <span>700</span>
-        <span>2024</span>
+        <span>{min}</span>
+        <span>{max}</span>
       </div>
     </div>
   );

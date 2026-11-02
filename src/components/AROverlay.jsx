@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { POIS } from '../pois';
 import { colors, fonts } from '../theme';
 
 function bearing(lat1, lng1, lat2, lng2) {
@@ -236,20 +235,25 @@ function InfiniteDial({ items, activeIndex, onChange }) {
   );
 }
 
-export default function AROverlay({ heading, pitch, position, year, onSelect }) {
+export default function AROverlay({ heading, pitch, position, year, pins = [], onSelect }) {
   const [images, setImages] = useState({});
   const [clusterIndices, setClusterIndices] = useState({});
   const prevOnScreenRef = useRef(new Set());
 
   useEffect(() => {
-    POIS.forEach((poi) => {
-      if (poi.wiki && !images[poi.id]) {
+    let cancelled = false;
+    pins.forEach((poi) => {
+      if (images[poi.id]) return;
+      if (poi.imageUrl) {
+        setImages((prev) => ({ ...prev, [poi.id]: poi.imageUrl }));
+      } else if (poi.wiki) {
         fetchWikiImage(poi.wiki).then((url) => {
-          if (url) setImages((prev) => ({ ...prev, [poi.id]: url }));
+          if (url && !cancelled) setImages((prev) => ({ ...prev, [poi.id]: url }));
         });
       }
     });
-  }, []);
+    return () => { cancelled = true; };
+  }, [pins]);
 
   const handleDialChange = useCallback((clusterId, total, direction) => {
     setClusterIndices((prev) => {
@@ -261,7 +265,7 @@ export default function AROverlay({ heading, pitch, position, year, onSelect }) 
 
   if (heading == null || !position) return null;
 
-  const visible = POIS.filter((p) => p.year <= year);
+  const visible = pins.filter((p) => p.year == null || p.year <= year);
 
   const poiData = visible.map((poi) => {
     const b = bearing(position.lat, position.lng, poi.lat, poi.lng);
@@ -368,7 +372,7 @@ export default function AROverlay({ heading, pitch, position, year, onSelect }) 
                     <img src={satImg} alt="" style={styles.circleImg} />
                   ) : (
                     <span style={{ ...styles.satYear, color: sat.poi.color }}>
-                      {sat.poi.year}
+                      {sat.poi.year ?? '·'}
                     </span>
                   )}
                 </div>
@@ -393,7 +397,7 @@ export default function AROverlay({ heading, pitch, position, year, onSelect }) 
                   background: `radial-gradient(circle, ${centerItem.poi.color}44, ${centerItem.poi.color}11)`,
                 }}>
                   <span style={{ ...styles.circleYear, color: centerItem.poi.color }}>
-                    {centerItem.poi.year}
+                    {centerItem.poi.year ?? '·'}
                   </span>
                 </div>
               )}
