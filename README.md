@@ -4,6 +4,8 @@ Point your phone at the past. Timescope is an AR history explorer: pick your com
 
 **Live:** [timescope-mocha.vercel.app](https://timescope-mocha.vercel.app)
 
+Timescope was built during the [Akiya Collective 2026 Social Tech Hackathon](https://luma.com/usyklg2m) in Nagano, Japan.
+
 ## What it does
 
 - **Communities** — search for your town or use your location. Each community has its own page of collections. Anyone can start a new community for a place that doesn't have one yet.
