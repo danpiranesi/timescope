@@ -2,8 +2,9 @@
 //
 // Input: a JSON file shaped like
 //   [{ "list": "Want to go", "pins": [{ "title", "lat", "lng", "note"?, "url"? }] }]
-// Pins in each list are clustered by area (CLUSTER_KM). Each cluster becomes
-// one collection in the community nearest its centre (created if needed).
+// Pins in each list are clustered by area (CLUSTER_KM). Each cluster with at
+// least MIN_PINS places becomes one collection in the community nearest its
+// centre (created if needed); smaller clusters are dropped.
 // Collections are created UNLISTED; flip them to listed in the editor.
 //
 // Usage:
@@ -167,24 +168,24 @@ for (const { list, pins } of lists) {
   const big = all.filter((g) => g.pins.length >= MIN_PINS);
   const small = all.filter((g) => g.pins.length < MIN_PINS);
   const groups = big.map((g) => ({ ...g, kind: 'area' }));
-  if (small.length) {
+  if (small.length && big.length) {
+    // Areas too small for their own collection are dropped when the list has bigger ones.
+    const n = small.reduce((a, g) => a + g.pins.length, 0);
+    skipped += n;
+    skippedBy['small area'] = (skippedBy['small area'] || 0) + n;
+  } else if (small.length) {
+    // A list made only of small areas becomes one collection so it is not lost entirely.
     const pinsLeft = small.flatMap((g) => g.pins);
     const n = pinsLeft.length;
-    // Anchor the leftovers to the list's largest area if it has one, else to their own centre.
-    const center = big.length ? big[0].center : { lat: pinsLeft.reduce((a, p) => a + p.lat, 0) / n, lng: pinsLeft.reduce((a, p) => a + p.lng, 0) / n };
-    groups.push({ center, pins: pinsLeft, kind: big.length ? 'elsewhere' : (small.length === 1 ? 'area' : 'scattered') });
+    const center = { lat: pinsLeft.reduce((a, p) => a + p.lat, 0) / n, lng: pinsLeft.reduce((a, p) => a + p.lng, 0) / n };
+    groups.push({ center, pins: pinsLeft, kind: small.length === 1 ? 'area' : 'scattered' });
   }
   for (const g of groups) {
     // Name the area after the real pin closest to the centre, not the centre itself.
     const anchor = g.pins.reduce((best, p) => (km(p, g.center) < km(best, g.center) ? p : best), g.pins[0]);
     const place = await placeFor(anchor);
-    const anchorPlace = g.kind === 'elsewhere' ? await placeFor(big[0].pins.reduce((b, p) => (km(p, big[0].center) < km(b, big[0].center) ? p : b), big[0].pins[0])) : place;
-    const title = g.kind === 'elsewhere'
-      ? `${list} · elsewhere`
-      : g.kind === 'scattered'
-        ? list
-        : list.toLowerCase() === place.name.toLowerCase() ? list : `${list} · ${place.name}`;
-    const communityPlace = g.kind === 'elsewhere' ? anchorPlace : place;
+    const title = g.kind === 'scattered' || list.toLowerCase() === place.name.toLowerCase() ? list : `${list} · ${place.name}`;
+    const communityPlace = place;
     const entry = { list, title, place: communityPlace, count: g.pins.length };
     if (DRY) {
       console.log(`[dry] ${title} — ${g.pins.length} pins → community ${communityPlace.name}, ${communityPlace.region}`);
