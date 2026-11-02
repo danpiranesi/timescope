@@ -168,23 +168,17 @@ for (const { list, pins } of lists) {
   const big = all.filter((g) => g.pins.length >= MIN_PINS);
   const small = all.filter((g) => g.pins.length < MIN_PINS);
   const groups = big.map((g) => ({ ...g, kind: 'area' }));
-  if (small.length && big.length) {
-    // Areas too small for their own collection are dropped when the list has bigger ones.
+  if (small.length) {
+    // Areas too small for their own collection are dropped.
     const n = small.reduce((a, g) => a + g.pins.length, 0);
     skipped += n;
     skippedBy['small area'] = (skippedBy['small area'] || 0) + n;
-  } else if (small.length) {
-    // A list made only of small areas becomes one collection so it is not lost entirely.
-    const pinsLeft = small.flatMap((g) => g.pins);
-    const n = pinsLeft.length;
-    const center = { lat: pinsLeft.reduce((a, p) => a + p.lat, 0) / n, lng: pinsLeft.reduce((a, p) => a + p.lng, 0) / n };
-    groups.push({ center, pins: pinsLeft, kind: small.length === 1 ? 'area' : 'scattered' });
   }
   for (const g of groups) {
     // Name the area after the real pin closest to the centre, not the centre itself.
     const anchor = g.pins.reduce((best, p) => (km(p, g.center) < km(best, g.center) ? p : best), g.pins[0]);
     const place = await placeFor(anchor);
-    const title = g.kind === 'scattered' || list.toLowerCase() === place.name.toLowerCase() ? list : `${list} · ${place.name}`;
+    const title = list.toLowerCase() === place.name.toLowerCase() ? list : `${list} · ${place.name}`;
     const communityPlace = place;
     const entry = { list, title, place: communityPlace, count: g.pins.length };
     if (DRY) {
